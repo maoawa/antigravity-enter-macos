@@ -12,6 +12,24 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}=== Installing antigravity-enter-macos ===${NC}"
 
+# Parse flags
+HIDE_MENU_ICON=""
+AUTO_YES=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --hide-menu-icon|--hide-icon|--headless)
+            HIDE_MENU_ICON="true"
+            ;;
+        --show-menu-icon|--show-icon)
+            HIDE_MENU_ICON="false"
+            ;;
+        -y|--yes)
+            AUTO_YES=true
+            ;;
+    esac
+done
+
 # 1. OS check
 if [[ "$(uname)" != "Darwin" ]]; then
     echo -e "${RED}Error: This tool is only designed for macOS.${NC}"
@@ -35,7 +53,30 @@ fi
 HS_DIR="$HOME/.hammerspoon"
 mkdir -p "$HS_DIR"
 
-# 4. Copy or download antigravity.lua
+# 4. Prompt for hiding menu bar icon if not specified
+if [ -z "$HIDE_MENU_ICON" ]; then
+    menu_choice=""
+    if [ "$AUTO_YES" = "true" ]; then
+        menu_choice="n"
+    elif [ -t 0 ]; then
+        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [y/N]: " menu_choice
+    elif [ -e /dev/tty ]; then
+        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [y/N]: " menu_choice </dev/tty
+    else
+        menu_choice="n"
+    fi
+
+    case "$menu_choice" in
+        [yY]|[yY][eE][sS])
+            HIDE_MENU_ICON="true"
+            ;;
+        *)
+            HIDE_MENU_ICON="false"
+            ;;
+    esac
+fi
+
+# 5. Copy or download antigravity.lua
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 TARGET_LUA="$HS_DIR/antigravity.lua"
 
@@ -48,43 +89,49 @@ else
     echo -e "${GREEN}✓ Downloaded antigravity.lua to $TARGET_LUA${NC}"
 fi
 
-# 5. Update init.lua
+# 6. Update init.lua
 INIT_LUA="$HS_DIR/init.lua"
 MARKER_START="-- START antigravity-enter-macos"
 MARKER_END="-- END antigravity-enter-macos"
 
-if [ ! -f "$INIT_LUA" ]; then
-    cat << 'EOF' > "$INIT_LUA"
--- START antigravity-enter-macos
-pcall(require, "hs.ipc")
-pcall(require, "antigravity")
--- END antigravity-enter-macos
-EOF
-    echo -e "${GREEN}✓ Created $INIT_LUA with antigravity module loaded${NC}"
+MENU_LUA_LINE=""
+if [ "$HIDE_MENU_ICON" = "true" ]; then
+    MENU_LUA_LINE="if hs and hs.menuIcon then hs.menuIcon(false) end"
 else
-    if ! grep -qF "antigravity" "$INIT_LUA"; then
-        cat << EOF >> "$INIT_LUA"
+    MENU_LUA_LINE="if hs and hs.menuIcon then hs.menuIcon(true) end"
+fi
 
+CONFIG_BLOCK=$(cat << EOF
 $MARKER_START
 pcall(require, "hs.ipc")
+if hs and hs.autoLaunch then hs.autoLaunch(true) end
+$MENU_LUA_LINE
 pcall(require, "antigravity")
 $MARKER_END
 EOF
-        echo -e "${GREEN}✓ Added antigravity loader to existing $INIT_LUA${NC}"
-    else
-        echo -e "${GREEN}✓ Antigravity module already configured in $INIT_LUA${NC}"
+)
+
+if [ ! -f "$INIT_LUA" ]; then
+    echo "$CONFIG_BLOCK" > "$INIT_LUA"
+    echo -e "${GREEN}✓ Created $INIT_LUA with antigravity module loaded${NC}"
+else
+    # Remove existing antigravity block if re-installing
+    if grep -qF -- "$MARKER_START" "$INIT_LUA" 2>/dev/null; then
+        sed -i '' '/-- START antigravity-enter-macos/,/-- END antigravity-enter-macos/d' "$INIT_LUA"
     fi
+    echo "" >> "$INIT_LUA"
+    echo "$CONFIG_BLOCK" >> "$INIT_LUA"
+    echo -e "${GREEN}✓ Updated $INIT_LUA with antigravity configuration${NC}"
 fi
 
-# 6. Launch or reload Hammerspoon
+# 7. Launch or reload Hammerspoon
 if pgrep -x "Hammerspoon" >/dev/null 2>&1; then
     echo -e "${BLUE}Reloading Hammerspoon configuration...${NC}"
-    if command -v hs >/dev/null 2>&1; then
-        hs -c "hs.reload()" >/dev/null 2>&1 || true
-    else
+    if ! command -v hs >/dev/null 2>&1 || ! hs -c "hs.reload()" >/dev/null 2>&1; then
         killall Hammerspoon 2>/dev/null || true
         sleep 0.5
         open -a Hammerspoon
+        sleep 1.5
     fi
 else
     echo -e "${BLUE}Launching Hammerspoon...${NC}"
@@ -92,7 +139,17 @@ else
     sleep 1.5
 fi
 
-# 7. Check Accessibility Permissions
+# Apply menu icon setting immediately via IPC if available
+if command -v hs >/dev/null 2>&1; then
+    if [ "$HIDE_MENU_ICON" = "true" ]; then
+        hs -c "hs.menuIcon(false)" >/dev/null 2>&1 || true
+    else
+        hs -c "hs.menuIcon(true)" >/dev/null 2>&1 || true
+    fi
+    hs -c "hs.autoLaunch(true)" >/dev/null 2>&1 || true
+fi
+
+# 8. Check Accessibility Permissions
 IS_ACCESSIBLE="false"
 if command -v hs >/dev/null 2>&1; then
     IS_ACCESSIBLE=$(hs -c "return hs.accessibilityState()" 2>/dev/null || echo "false")
@@ -107,6 +164,13 @@ echo -e "  • ${YELLOW}Cmd + Enter${NC} (or ${YELLOW}Ctrl + Enter${NC}) -> ${GR
 echo -e "  • ${YELLOW}Enter${NC}                          -> ${GREEN}New Line${NC}"
 echo -e "  • ${YELLOW}Shift + Enter${NC}                  -> ${GREEN}New Line${NC}"
 echo ""
+if [ "$HIDE_MENU_ICON" = "true" ]; then
+    echo -e "Status Bar Icon: ${YELLOW}Hidden${NC} (run ./toggle-menu-bar.sh to show/hide anytime)"
+else
+    echo -e "Status Bar Icon: ${GREEN}Visible${NC} (run ./toggle-menu-bar.sh to show/hide anytime)"
+fi
+echo -e "Auto-Launch on Login: ${GREEN}Enabled${NC}"
+echo ""
 
 if [ "$IS_ACCESSIBLE" != "true" ]; then
     echo -e "${YELLOW}IMPORTANT:${NC} Hammerspoon requires macOS ${BLUE}Accessibility${NC} permissions to remap keys."
@@ -116,7 +180,7 @@ if [ "$IS_ACCESSIBLE" != "true" ]; then
     echo "Please toggle the switch ON for 'Hammerspoon' in the Settings window."
     echo ""
 else
-    echo -e "${GREEN}✓ Accessibility permission is already granted.${NC}"
+    echo -e "${GREEN}✓ Accessibility permission is active.${NC}"
     echo "You're all set! Try typing in Antigravity."
     echo ""
 fi

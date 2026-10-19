@@ -12,6 +12,16 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}=== Uninstalling antigravity-enter-macos ===${NC}"
 
+# Parse flags
+UNINSTALL_APP=false
+for arg in "$@"; do
+    case "$arg" in
+        --all|--purge|-a)
+            UNINSTALL_APP=true
+            ;;
+    esac
+done
+
 HS_DIR="$HOME/.hammerspoon"
 TARGET_LUA="$HS_DIR/antigravity.lua"
 INIT_LUA="$HS_DIR/init.lua"
@@ -47,15 +57,47 @@ if [ -f "$INIT_LUA" ]; then
     fi
 fi
 
-# 3. Reload Hammerspoon if running
-if pgrep -x "Hammerspoon" >/dev/null 2>&1; then
-    echo -e "${BLUE}Reloading Hammerspoon configuration...${NC}"
-    if command -v hs >/dev/null 2>&1; then
-        hs -c "hs.reload()" >/dev/null 2>&1 || true
-    else
-        killall Hammerspoon 2>/dev/null || true
-        sleep 0.5
-        open -a Hammerspoon
+# 3. Prompt whether to also uninstall Hammerspoon if flag wasn't provided
+if [ "$UNINSTALL_APP" = "false" ]; then
+    echo ""
+    choice=""
+    if [ -t 0 ]; then
+        read -r -p "Do you also want to completely uninstall the Hammerspoon application? [y/N]: " choice
+    elif [ -e /dev/tty ]; then
+        read -r -p "Do you also want to completely uninstall the Hammerspoon application? [y/N]: " choice </dev/tty
+    fi
+    case "$choice" in
+        [yY]|[yY][eE][sS])
+            UNINSTALL_APP=true
+            ;;
+        *)
+            UNINSTALL_APP=false
+            ;;
+    esac
+fi
+
+# 4. Handle Hammerspoon app removal or reload
+if [ "$UNINSTALL_APP" = "true" ]; then
+    echo -e "${YELLOW}Uninstalling Hammerspoon application...${NC}"
+    killall Hammerspoon 2>/dev/null || true
+    
+    if command -v brew >/dev/null 2>&1 && brew list --cask hammerspoon >/dev/null 2>&1; then
+        echo -e "${BLUE}Running 'brew uninstall --cask hammerspoon'...${NC}"
+        brew uninstall --cask hammerspoon
+    fi
+
+    rm -rf "/Applications/Hammerspoon.app" "$HOME/Applications/Hammerspoon.app" 2>/dev/null || true
+    rm -rf "$HS_DIR" 2>/dev/null || true
+    echo -e "${GREEN}✓ Hammerspoon application and configurations removed.${NC}"
+else
+    # Reload Hammerspoon to apply cleaned configuration
+    if pgrep -x "Hammerspoon" >/dev/null 2>&1; then
+        echo -e "${BLUE}Reloading Hammerspoon configuration...${NC}"
+        if ! command -v hs >/dev/null 2>&1 || ! hs -c "hs.reload()" >/dev/null 2>&1; then
+            killall Hammerspoon 2>/dev/null || true
+            sleep 0.5
+            open -a Hammerspoon
+        fi
     fi
 fi
 
