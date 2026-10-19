@@ -1,101 +1,83 @@
 # antigravity-enter-macos
 
-> Enter to New Line, <kbd>⌘ Cmd</kbd> + <kbd>Enter</kbd> to Send in **Antigravity** desktop on macOS. That Google bro never did.
+[![macOS](https://img.shields.io/badge/platform-macOS%2013%2B-black?logo=apple)](https://github.com/maoawa/antigravity-enter-macos)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Hammerspoon](https://img.shields.io/badge/powered%20by-Hammerspoon-orange)](https://www.hammerspoon.org/)
 
-Antigravity’s desktop chat composer natively hardcodes <kbd>Enter</kbd> to send messages, which frequently leads to accidental sends when all you wanted was a line break. 
-
-This repository provides an automated, lightweight Hammerspoon configuration to fix this behavior cleanly without modifying any signed application files or breaking macOS Gatekeeper.
+> **Enter for New Line.** <kbd>⌘ Cmd</kbd> + <kbd>Enter</kbd> to Send in **Antigravity** on macOS.  
+> *Fixes the annoying accidental sends that Google bro never did.*
 
 ---
 
-### Key Mappings
+### ⌨️ Key Mappings
 
 | Key Combination | Action in Antigravity |
 | :--- | :--- |
-| <kbd>⌘ Cmd</kbd> + <kbd>Enter</kbd> *(or <kbd>⌃ Ctrl</kbd> + <kbd>Enter</kbd>)* | **Send Message** |
-| <kbd>Enter</kbd> | **New Line** |
-| <kbd>⇧ Shift</kbd> + <kbd>Enter</kbd> | **New Line** |
+| <kbd>⌘ Cmd</kbd> + <kbd>Enter</kbd> *(or <kbd>⌃ Ctrl</kbd> + <kbd>Enter</kbd>)* | 🚀 **Send Message** |
+| <kbd>Enter</kbd> | ↵ **New Line** |
+| <kbd>⇧ Shift</kbd> + <kbd>Enter</kbd> | ↵ **New Line** |
 
-> **Scoped Only to Antigravity**: Keystroke remapping only triggers when Antigravity (`com.google.antigravity`) is the active frontmost window. All other applications remain completely unaffected.
+> 🔒 **100% Isolated:** Keystroke remapping is strictly scoped to Antigravity (`com.google.antigravity`). All your other apps (VS Code, browsers, terminal, Slack) are completely unaffected.
 
 ---
 
-### One-Key Install
+## ⚡ Quick Start (One-Key Install)
 
-Run this single-line command in your terminal:
+Paste and run this single command in your macOS **Terminal**:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maoawa/antigravity-enter-macos/main/install.sh | bash
 ```
 
-*What the installer does automatically:*
-1. Checks if [Hammerspoon](https://www.hammerspoon.org/) is installed (and installs it via Homebrew if missing).
-2. Prompts whether you'd like to hide the Hammerspoon icon from your macOS status / menu bar.
-3. Enables **Launch at Login** automatically so the key mapping persists after system restarts.
-4. Copies `antigravity.lua` to `~/.hammerspoon/antigravity.lua`.
-5. Adds the loader safely to `~/.hammerspoon/init.lua` without overwriting existing configs.
-6. Launches or reloads Hammerspoon immediately.
+### 3-Step Setup:
+1. **Run the command above** — It automatically checks for [Hammerspoon](https://www.hammerspoon.org/) (installs via Homebrew if needed), configures the remapper, and enables Launch-at-Login.
+2. **Grant Permission** — macOS will prompt you to grant Accessibility access to **Hammerspoon**:
+   > Open **System Settings** $\to$ **Privacy & Security** $\to$ **Accessibility** $\to$ Toggle **ON** for **Hammerspoon**.
+3. **Done!** — Jump into Antigravity and start typing with normal line breaks.
 
 ---
 
-### Menu Bar Icon (Show / Hide)
+## 🗑️ One-Key Uninstall
 
-You can choose whether Hammerspoon shows an icon in your macOS menu bar:
-- **During installation**: You will be prompted with `[y/N]` (or use `--hide-menu-icon`).
-- **Toggle anytime**: Run the included helper script:
-  ```bash
-  ./toggle-menu-bar.sh
-  ```
-  Or via one-liner in terminal:
-  ```bash
-  hs -c "hs.menuIcon(not hs.menuIcon())"
-  ```
-
----
-
-### One-Key Uninstall
-
-Run the uninstaller command:
+Want to revert back to default Antigravity behavior? Run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/maoawa/antigravity-enter-macos/main/uninstall.sh | bash
 ```
 
-*Uninstall Options:*
-- **Default**: Removes the Antigravity keymapping and restores default Antigravity behavior, keeping Hammerspoon installed for your other uses.
-- **Complete Purge**: When prompted, type `y` (or pass `./uninstall.sh --all`) to completely remove the Hammerspoon application and its configurations.
+* **Default:** Cleans up the configuration and restores default Antigravity behavior, keeping Hammerspoon for any other uses.
+* **Complete Purge:** Type `y` when prompted (or pass `./uninstall.sh --all`) to uninstall the Hammerspoon app entirely.
 
 ---
 
-### macOS Permissions (Important First-Time Setup)
+## ⚙️ Options & Utilities
 
-Hammerspoon uses the standard macOS Accessibility API (`hs.eventtap`) to intercept and translate key events. 
+### Hide / Show Status Bar Icon
+Keep your macOS menu bar clean and distraction-free:
+```bash
+# Toggle Hammerspoon status bar icon on / off anytime:
+hs -c "hs.menuIcon(not hs.menuIcon())"
+```
+*(If you cloned the repo locally, you can also run `./toggle-menu-bar.sh`)*
 
-When running for the first time:
-1. macOS will prompt you to grant Accessibility access to **Hammerspoon**.
-2. Go to **System Settings** $\to$ **Privacy & Security** $\to$ **Accessibility**.
-3. Toggle the switch **ON** for **Hammerspoon**.
-4. If Hammerspoon was already running when permission was granted, restart it or run:
-   ```bash
-   hs -c "hs.reload()"
-   ```
+### Silent / Headless Install
+To install non-interactively with the menu bar icon hidden by default:
+```bash
+curl -fsSL https://raw.githubusercontent.com/maoawa/antigravity-enter-macos/main/install.sh | bash -s -- --hide-menu-icon -y
+```
 
 ---
 
-### Manual / Local Usage
+## 💻 Manual / Local Setup
 
-If you have cloned the repository locally:
+If you prefer to clone and inspect the code locally:
 
 ```bash
-# Clone the repository
 git clone https://github.com/maoawa/antigravity-enter-macos.git
 cd antigravity-enter-macos
 
-# Install (interactive)
+# Install
 ./install.sh
-
-# Install silently (hidden icon)
-./install.sh --hide-menu-icon -y
 
 # Toggle status bar icon
 ./toggle-menu-bar.sh
@@ -109,6 +91,18 @@ cd antigravity-enter-macos
 
 ---
 
+## 💡 How It Works
+
+Antigravity 2.0's desktop chat composer is built on React and Meta's Lexical framework, where <kbd>Enter</kbd> is hardcoded to submit. Web assets are packed inside a signed Mach-O Go binary (`language_server`), making direct file patching prone to breaking macOS Gatekeeper and being wiped by auto-updates.
+
+`antigravity-enter-macos` uses **Hammerspoon**'s lightweight event tap (`hs.eventtap`):
+- It intercepts keystrokes only when Antigravity is the frontmost application.
+- Remaps pure <kbd>Enter</kbd> $\to$ <kbd>Shift</kbd>+<kbd>Enter</kbd> (triggering a newline).
+- Remaps <kbd>⌘ Cmd</kbd>+<kbd>Enter</kbd> $\to$ plain <kbd>Enter</kbd> (triggering send).
+- Fast path filter: ignores all non-Enter keystrokes instantly with **zero CPU latency**.
+
+---
+
 ### License
 
-[MIT](LICENSE)
+If you like this repo, please donate a little ⭐️Star!
