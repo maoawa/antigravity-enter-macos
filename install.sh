@@ -57,21 +57,21 @@ mkdir -p "$HS_DIR"
 if [ -z "$HIDE_MENU_ICON" ]; then
     menu_choice=""
     if [ "$AUTO_YES" = "true" ]; then
-        menu_choice="n"
+        menu_choice="y"
     elif [ -t 0 ]; then
-        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [y/N]: " menu_choice
+        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [Y/n]: " menu_choice
     elif [ -e /dev/tty ]; then
-        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [y/N]: " menu_choice </dev/tty
+        read -r -p "Do you want to hide the Hammerspoon icon from your macOS status / menu bar? [Y/n]: " menu_choice </dev/tty
     else
-        menu_choice="n"
+        menu_choice="y"
     fi
 
     case "$menu_choice" in
-        [yY]|[yY][eE][sS])
-            HIDE_MENU_ICON="true"
+        [nN]|[nN][oO])
+            HIDE_MENU_ICON="false"
             ;;
         *)
-            HIDE_MENU_ICON="false"
+            HIDE_MENU_ICON="true"
             ;;
     esac
 fi
