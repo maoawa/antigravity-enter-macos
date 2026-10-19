@@ -56,15 +56,17 @@ MARKER_END="-- END antigravity-enter-macos"
 if [ ! -f "$INIT_LUA" ]; then
     cat << 'EOF' > "$INIT_LUA"
 -- START antigravity-enter-macos
+pcall(require, "hs.ipc")
 pcall(require, "antigravity")
 -- END antigravity-enter-macos
 EOF
     echo -e "${GREEN}✓ Created $INIT_LUA with antigravity module loaded${NC}"
 else
-    if ! grep -q "antigravity" "$INIT_LUA"; then
+    if ! grep -qF "antigravity" "$INIT_LUA"; then
         cat << EOF >> "$INIT_LUA"
 
 $MARKER_START
+pcall(require, "hs.ipc")
 pcall(require, "antigravity")
 $MARKER_END
 EOF
@@ -87,6 +89,13 @@ if pgrep -x "Hammerspoon" >/dev/null 2>&1; then
 else
     echo -e "${BLUE}Launching Hammerspoon...${NC}"
     open -a Hammerspoon
+    sleep 1.5
+fi
+
+# 7. Check Accessibility Permissions
+IS_ACCESSIBLE="false"
+if command -v hs >/dev/null 2>&1; then
+    IS_ACCESSIBLE=$(hs -c "return hs.accessibilityState()" 2>/dev/null || echo "false")
 fi
 
 echo ""
@@ -98,7 +107,16 @@ echo -e "  • ${YELLOW}Cmd + Enter${NC} (or ${YELLOW}Ctrl + Enter${NC}) -> ${GR
 echo -e "  • ${YELLOW}Enter${NC}                          -> ${GREEN}New Line${NC}"
 echo -e "  • ${YELLOW}Shift + Enter${NC}                  -> ${GREEN}New Line${NC}"
 echo ""
-echo -e "${YELLOW}IMPORTANT:${NC} Hammerspoon requires macOS ${BLUE}Accessibility${NC} permissions."
-echo "If this is your first time using Hammerspoon, grant permission in:"
-echo "  System Settings -> Privacy & Security -> Accessibility -> Enable 'Hammerspoon'"
-echo ""
+
+if [ "$IS_ACCESSIBLE" != "true" ]; then
+    echo -e "${YELLOW}IMPORTANT:${NC} Hammerspoon requires macOS ${BLUE}Accessibility${NC} permissions to remap keys."
+    echo "Opening System Settings for you now..."
+    hs -c "hs.accessibilityState(true)" >/dev/null 2>&1 || true
+    open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    echo "Please toggle the switch ON for 'Hammerspoon' in the Settings window."
+    echo ""
+else
+    echo -e "${GREEN}✓ Accessibility permission is already granted.${NC}"
+    echo "You're all set! Try typing in Antigravity."
+    echo ""
+fi

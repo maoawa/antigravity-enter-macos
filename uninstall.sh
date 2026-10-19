@@ -38,6 +38,7 @@ if [ -f "$INIT_LUA" ]; then
     # Fallback: remove any leftover require lines
     sed -i '' '/pcall(require, *"antigravity"*)/d' "$INIT_LUA" 2>/dev/null || true
     sed -i '' '/require(["'"'"']antigravity["'"'"'])/d' "$INIT_LUA" 2>/dev/null || true
+    sed -i '' '/pcall(require, *"hs.ipc"*)/d' "$INIT_LUA" 2>/dev/null || true
 
     # If init.lua is empty or only whitespace, remove it cleanly
     if [ -f "$INIT_LUA" ] && [ -z "$(tr -d '[:space:]' < "$INIT_LUA")" ]; then
